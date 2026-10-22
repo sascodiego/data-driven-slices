@@ -37,8 +37,8 @@
 | C5 | Feature flag / cambio gradual | Host | 🔲 Pendiente | **Reformulado**: flag es dato de delivery/host, nunca del engine; charter describe comportamiento objetivo |
 | C6 | Dato compartido transversal (`TenantId`, `Locale`) | Datos | 🔲 Pendiente | Routing interno; `TenantId` ≈ infraestructura (candidato legítimo a `/Core`) |
 | C7 | Cambio de tipo transversal (`Money`: precisión/moneda) | Datos | 🔲 Pendiente | **Enriquecido**: la frontera del host aísla al mundo (DTOs externos); el ripple interno sigue |
-| C8 | Bug fix: ¿la verdad es el código o el charter? | Corrección | 🔲 Pendiente | El caso más frecuente; define el principio de fuente de verdad |
-| C9 | Conflicto charter ↔ código descubierto (drift) | Corrección | 🔲 Pendiente | Quién gana; el drift en sí es defecto |
+| C8 | Bug fix: ¿la verdad es el código o el charter? | Corrección | ✅ Resuelto | Triage contra la pila de verdad (implementación/promesa/definición); RED primero; regla dura anti "arreglé el test" |
+| C9 | Conflicto charter ↔ código descubierto (drift) | Corrección | ✅ Resuelto | Drift = sello/consistencia en rojo; clasificar 9a/9b/9c; consultar por defecto, autonomía solo en 9b trivial |
 | C10 | Baseline rota (suite roja al empezar) | Corrección | 🔲 Pendiente | Regla de baseline limpia para el agente |
 | C11 | Cambio no funcional (perf, layout AoS/SoA) | No-comportamiento | 🔲 Pendiente | Corazón del posture DoD sin workflow; el cierre verifica con benchmarks, no asserts |
 | C12 | Refactor puro sin cambio de comportamiento | No-comportamiento | 🔲 Pendiente | ¿Qué exige el cierre sin RED→GREEN? |
@@ -57,8 +57,19 @@
 
 ## 4. Resoluciones (se llenan al discutir; cada resolución graduada se refleja en [Workflows](DDS_Workflows.md))
 
-### 4.1 C8 + C9 — Fuente de verdad: código vs. charter
-🔲 Pendiente de discusión.
+### 4.1 C8 + C9 — Fuente de verdad: código vs. charter — ✅ RESUELTO
+
+**Resolución (graduada a [Charter v2](DDS_Slice_Charter.md) y [Workflows](DDS_Workflows.md)):**
+
+1. **Pila de verdad**: charter-data → contract → test → code; cambios top-down explícitos, nunca bottom-up silenciosos.
+2. **Charter como datos** (front-matter) + decision log con porqués por ID; justificaciones fuera del charter.
+3. **Tríada de definición**: `SLICE.md` + `[Slice].slice.test.cs` + `slice.shax` (sello del par: sha256 de hashes). Detección de drift instantánea por estado, sin tool.
+4. **`consumes`**: referencias cross-slice declaradas vs. reales — detección determinística de creep sin escaneo de vocabulario.
+5. **Protocolo P0–P3**: compuerta de impacto (definición/promesa/implementación); nivel 1 no toca la tríada (fricción cero); nivel 3 rota sello + log.
+6. **Triage de bug**: compuerta P0 aplicada; regla dura anti-edición de aserciones.
+7. **Agente ante drift**: consulta por defecto; autonomía solo en 9b trivial.
+
+**Decisiones de diseño descartadas en la discusión** (trazabilidad): escaneo de vocabulario (heurístico, ruidoso); hashes mutuos md↔test (sin punto fijo); cadena test→md→yaml (fuerte pero con cascada y hash en doc humano); sello combinado elegido: mismo poder de detección con un solo valor y charter limpio.
 
 ### 4.2 C4 + C3 + C5 — Host y superficie externa
 🔲 Pendiente de discusión. Al resolver: asentar el concepto host/composition root en el método y evaluar el nodo D-8.
