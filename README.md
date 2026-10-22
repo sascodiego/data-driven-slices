@@ -48,7 +48,7 @@ DDS is published as a **prospectus / manifesto of design criteria and measurable
 - A **decision criterion**: separate **Data** (what is known) from **Decision** (what is computed) from **Delivery** (what changes the world).
 - A **risk-driven, three-profile scale** (Lite / Standard / Strict) so the amount of physical structure is proportional to risk, not dogma.
 - A **zero-mocks testing posture** for the Decision / Engine layer, with observable-behavior test doubles allowed for Delivery.
-- **Injection into SDD** as architectural criteria inside Design / Apply / Verify — DDS adds **no new SDD phases**.
+- **Injection into SDD and ODD** as architectural criteria inside the existing phases of either workflow — DDS adds **no new phases** to SDD or ODD. Both methodologies remain fully supported and coexist.
 
 ### What DDS does NOT claim yet
 - It does **not** claim proven, universal reductions in token cost, AI exploration cost, regression rate, or refactor blast radius.
@@ -107,15 +107,28 @@ Since business logic is isolated in pure static **Engines** (Decision) that rece
 
 ---
 
-## DDS Inside SDD (No Extra Steps)
+## DDS Inside SDD and ODD (No Extra Steps)
 
-DDS does **not** modify the SDD flow or add phases. It is injected as **architectural criteria** inside the existing SDD phases, after the idea is defined:
+DDS is **workflow-agnostic**: it does not modify the flow of the host methodology nor add phases. It is injected as **architectural criteria** inside the existing phases of either agentic workflow, after the idea is defined. SDD (Spec-Driven Development) and ODD (Organic Driven Development) are both supported and coexist — choose whichever the project already uses; DDS adapts to it.
+
+### Injection into SDD (Spec-Driven Development)
 
 | SDD phase | What DDS adds |
 | :--- | :--- |
 | **Design / Spec planning** | Choose the **profile** (Lite / Standard / Strict), define the **slice boundary** and its name, fix the **contract shape**, and pick the **TDD strategy**. |
 | **Apply** | Implement using the selected profile and keep the `Data / Decision / Delivery` separation **proportionate** to the slice's risk. |
 | **Verify** | Check tests, boundaries, blast radius, and confirm that the **profile choice was proportional** to the actual risk. |
+
+### Injection into ODD (Organic Driven Development)
+
+| ODD phase | What DDS adds |
+| :--- | :--- |
+| **Authorize / Explore** | Read-only phase: bound the exploration to the target **slice** (read only the public `contracts.XX` of neighbor slices). No structural commitment yet. |
+| **Resolve uncertainty / Classify / Track** | Choose the **profile** (Lite / Standard / Strict) based on observed risk, define the **slice boundary** and its name, fix the **contract shape**, and record the choice in the feature task document. |
+| **Implement task by task** | Implement with the selected profile, keep the `Data / Decision / Delivery` separation **proportionate** to the slice's risk, and honor the context-bounding rules of the target slice. |
+| **Check / Close** | Same as SDD Verify: check tests, boundaries, blast radius, and confirm that the **profile choice was proportional** to the actual risk. Each task closes with a reviewable work-unit commit. |
+
+> The SDD and ODD mappings are equivalent: **planning picks the profile, implementation keeps the separation, verification confirms proportionality.** Only the phase names differ.
 
 ### Slice Naming & Sizing
 

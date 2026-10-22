@@ -9,7 +9,7 @@
 ## Lectura rápida
 
 1. **DoD** aporta la base de datos: structs planos, transformaciones sin estado, localidad de memoria. Es una **hipótesis** crítica de POO/DI, no un dogma.
-2. **DDS** aporta la estructura: `Data / Decision / Delivery`, perfiles `Lite / Standard / Strict`, promoción por riesgo, integración en SDD sin fases nuevas y `/core` casi vacío (solo infraestructura).
+2. **DDS** aporta la estructura: `Data / Decision / Delivery`, perfiles `Lite / Standard / Strict`, promoción por riesgo, integración en SDD y ODD sin fases nuevas y `/core` casi vacío (solo infraestructura).
 3. **Lo que falta** son los mecanismos operativos que vuelven esos criterios accionables y medibles: playbooks de promoción, umbrales, ejemplos reales y un manual de evolución de contratos.
 
 ---
@@ -35,7 +35,7 @@
 | **Data / Decision / Delivery** | El criterio central: separar lo conocido, lo calculado y lo que modifica el mundo. | [Método de Trabajo IA](DDS_Metodo_Trabajo_IA.md) |
 | **Lite / Standard / Strict** | Tres perfiles de primera clase; la estructura física es proporcional al riesgo, no al dogma. | [Método de Trabajo IA](DDS_Metodo_Trabajo_IA.md) · [README](../../README.md) |
 | **Promoción por dolor/riesgo** | Se sube de perfil **solo** ante síntomas concretos. Si no hay dolor, no se promueve. | [Método de Trabajo IA](DDS_Metodo_Trabajo_IA.md) |
-| **Integración en SDD sin fases extra** | DDS se inyecta como criterio dentro de Design / Apply / Verify; **no agrega fases SDD**. | [Método de Trabajo IA](DDS_Metodo_Trabajo_IA.md) · [README](../../README.md) |
+| **Integración en SDD y ODD sin fases extra** | DDS se inyecta como criterio dentro de las fases existentes de cualquiera de las dos metodologías agénticas (SDD en Design / Apply / Verify; ODD en Explore / Classify-Track / Implement / Check); **no agrega fases** a ninguna. Ambas coexisten como opciones de primera clase. | [Método de Trabajo IA](DDS_Metodo_Trabajo_IA.md) · [README](../../README.md) |
 | **Zero-Mocks acotado a Decision/Engine** | Los mocks dinámicos se prohíben para Decision/Engine; Delivery puede usar dobles de comportamiento observable. | [TDD Sin Mocks](DDS_TDD_Sin_Mocks.md) |
 | **`/core` mínimo / solo infraestructura** | `/core` es aburrido y casi vacío: handles opacos de transacción y primitivas técnicas verdaderamente compartidas. **Los IDs y el Dinero NO viven en `/core` por defecto.** | [Método de Trabajo IA](DDS_Metodo_Trabajo_IA.md) |
 | **Prospecto con dimensiones medibles** | Ocho dimensiones (tokens, archivos, runtime de tests, radio de explosión, regresión, etc.) con hipótesis a contrastar. | [Prospecto Medible](DDS_Metodo_Trabajo_IA.md#prospecto-medible-hipótesis-a-validar) |
@@ -69,7 +69,7 @@ Estos son los entregables pendientes. Cada uno convierte un criterio actual en u
 - [x] Disparadores de promoción por síntomas.
 - [x] Postura Zero-Mocks acotada a Decision/Engine.
 - [x] Regla de `/core` corregida (infraestructura; IDs y Dinero fuera por defecto).
-- [x] Integración en SDD sin fases nuevas.
+- [x] Integración en SDD y ODD sin fases nuevas.
 - [x] Prospecto con dimensiones e hipótesis medibles.
 - [ ] Playbook de promoción **y democión** entre perfiles.
 - [ ] Umbrales numéricos iniciales por dimensión.
