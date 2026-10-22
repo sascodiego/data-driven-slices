@@ -1,7 +1,7 @@
-# Charter de Slice y Tests de Arquitectura
+# Charter de Slice, Tríada de Definición y Tests de Arquitectura
 
 > [!NOTE]
-> **Estado: propuesta asentada, pendiente de validación.** Este documento incorpora al criterio DDS dos mecanismos complementarios: el **charter de slice** (intención) y los **tests de arquitectura** (fronteras ejecutables). Sigue la postura del [prospecto](DDS_Metodo_Trabajo_IA.md#prospecto-medible-hipótesis-a-validar): son recomendaciones a poner a prueba con el primer proyecto real, no resultados probados.
+> **Estado: propuesta asentada (v2), pendiente de validación.** Este documento incorpora al criterio DDS la **tríada de definición** por slice (charter + test de definición + sello) y los **tests de arquitectura**. Incluye la resolución del cluster C8+C9 del [registro de discusión](DDS_Casos_Discusion.md). Sigue la postura del [prospecto](DDS_Metodo_Trabajo_IA.md#prospecto-medible-hipótesis-a-validar): recomendaciones a poner a prueba, no resultados probados.
 
 ---
 
@@ -12,68 +12,132 @@ Un slice es una unidad de cambio — pero dentro del slice, el *propósito* qued
 1. **Routing erróneo**: "¿esto va en `Billing` o en `Invoicing`?" se responde por intuición. El scope creep es el vector #1 de pudrición de slices.
 2. **Doc muerto**: la respuesta clásica — un documento que describe lo que hace el código — diverge a las semanas y nadie lo mantiene.
 
-## 2. El principio
+## 2. El principio, en dos partes
 
-> **El charter de un slice solo puede contener lo que el código no puede expresar: por qué existe, qué le está prohibido hacer, y qué NO es su problema. Si una máquina puede derivarlo del repo, va contra la regla.**
+**Parte A — Solo lo que el código no puede expresar:**
 
-Con esa regla, el documento no se mantiene porque no describe nada que cambie seguido: el *propósito* de un slice cambia una vez por año; su estructura cambia todos los días. Se documenta lo lento, jamás lo rápido.
+> El charter de un slice solo puede contener lo que el código no puede expresar: por qué existe, qué le está prohibido, qué NO es su problema, a quién consume. Si una máquina puede derivarlo del repo, va contra la regla.
 
-## 3. Los dos artifacts (separados por naturaleza)
+**Parte B — La pila de verdad** (resolución C8/C9):
 
-### 3.1 `SLICE.md` — charter de intención
-
-10 a 25 líneas, colocado **dentro del slice** (docs colocalizados se leen; docs en carpetas centrales se pudren sin testigos):
-
-```markdown
-# Slice: Billing
-Purpose: own everything about charging money for completed sales.
-Not here: pricing rules (Pricing), refunds (ApproveRefund), payment retries (Payments).
-Language: Charge (attempt), Invoice (document), Settlement (money moved).
-Profile: Standard — real business rules, no compiler walls needed yet.
-Surface: contracts.Billing is the only public face. Confirmed: YYYY-MM-DD.
+```text
+1. CHARTER   — la intención      (por qué existe, límites, consumidores)
+2. CONTRACT  — la promesa        (qué entra y sale por la frontera)
+3. TEST      — la regla declarada (entrada→salida prometida; enforcement)
+4. CODE      — la implementación  (una forma de cumplir 3)
 ```
 
-**Contenido permitido (solo intención):**
+Los cambios bajan gratis; **subir de capa exige artifacts explícitos en cada nivel**. Una contradicción que sube desde abajo es un defecto que se clasifica antes de resolverse, nunca algo que se acomoda. Regla dura: **jamás modificar una aserción para poner la suite en verde** — cambiar un test que codificaba comportamiento es un cambio de especificación y va en el mismo commit con la justificación de por qué el comportamiento viejo estaba mal.
 
-| Campo | Para qué sirve |
+## 3. La tríada de definición
+
+Tres archivos en la raíz de cada slice. Un slice sin tríada no existe:
+
+```text
+Slices/Billing/
+├── SLICE.md                  # charter: cláusulas en front-matter. Cero hashes.
+├── Billing.slice.test.cs     # test de definición: reglas derivadas + copia embebida
+├── slice.shax                # sello: sha256 del par (una línea hex)
+├── contracts.Billing/ ...
+```
+
+### 3.1 `SLICE.md` — charter como datos
+
+```markdown
+---
+name: Billing
+purpose: own everything about charging money for completed sales
+excludes:
+  - { concept: pricing, owner: Pricing, decision: DDS-012 }
+language:
+  - { term: Charge, means: attempt to charge money }
+consumes: [Pricing]
+profile: { level: Standard, decision: DDS-011 }
+surface: contracts.Billing
+confirmed: 2026-10-22
+---
+```
+
+- Prohibido: inventarios de archivos, clases, flujos, modelos de datos. Ley de tamaño: una pantalla; si necesita índice, documenta estructura y viola la regla.
+- Los porqués **no viven acá**: viven en el decision log (tabla anclada del proyecto), referenciados por ID.
+
+### 3.2 `[Slice].slice.test.cs` — el enforcement
+
+- Reglas estructurales **derivadas de las cláusulas**, con **copia embebida** de la declaración que enforcementan (no confía en el `.md` en runtime).
+- Chequeo de consistencia: copia embebida ↔ front-matter. Un charter editado sin re-derivar el test da rojo.
+- Se compila vía glob en un único proyecto de tests de definiciones repo-level.
+
+### 3.3 `slice.shax` — el sello del par
+
+```
+sha256( sha256(SLICE.md) + sha256([Slice].slice.test.cs) )
+```
+
+Una línea hex en `slice.shax`. **Un sello para el par**: cualquier modificación de cualquiera de los dos archivos rompe el sello → rojo instantáneo al correr la suite → obligación de explicar por qué cambió. Nadie hashea el `.shax`: es el ancla local del slice; su integridad es visibilidad de diff + revisión (+ guard futuro).
+
+## 4. Protocolo de definición (P0–P3)
+
+**P0 — Compuerta de impacto:** ¿hasta qué capa sube el cambio?
+
+| Nivel | Cambia | Toca | NO toca |
+| :-: | :--- | :--- | :--- |
+| **3. Definición** | Qué es / para qué: purpose, excludes, consumes, language, profile | Charter + test de definición + `.shax` + fila de log | — |
+| **2. Promesa** | La superficie (`contracts.X`) sin cambiar el concepto | Evento de evolución de contrato (D-4) + re-stamp `confirmed` | Tríada |
+| **1. Implementación** | Lógica interna del engine, internals del delivery | Engine + tests de comportamiento | **Ni el `.md`, ni su test, ni el sello** |
+
+**P1 — Camino de definición:** editar cláusulas → re-derivar el test (reglas + copia embebida) → recomputar el sello del par → `.shax` → fila en el decision log. La detección es de estado: pasos a medias = suite roja hasta completar.
+
+**P2 — Camino de contrato:** evento D-4 existente + re-stamp. El log no se toca (dos ceremonias para lo mismo es burocracia).
+
+**P3 — Contenido:** nada extra. Fricción cero para el caso común.
+
+**P0 aplicado a bugs (C8):** el triage de bug es la compuerta — ¿el bug es de implementación (código ≠ su test), de promesa (contrato miente) o de definición (el charter mintiendo)? Se corrige en la capa clasificada y el cambio cae hacia abajo. RED primero, desde el reporte.
+
+## 5. Matriz de detección
+
+| Tocan | Resultado |
 | :--- | :--- |
-| `Purpose` (una línea) | El capability: los motivos de cambio viven acá |
-| `Not here` (exclusiones explícitas con dueño) | **Anti scope-creep** — la línea más valiosa del charter |
-| `Language` (3–5 términos del dominio) | Lenguaje ubicuo mínimo, definiciones crisp |
-| `Profile` + por qué (una línea) | Elección registrada al crear el slice |
-| `Surface` + fecha de confirmación | La regla ("contracts.X es la única cara pública"), no un inventario |
+| `SLICE.md` o el test, solos o juntos, sin `.shax` | 🔴 sello del par roto |
+| `slice.shax` solo | 🔴 declarado ≠ actual |
+| Charter + `.shax` (re-definir sin re-derivar) | 🔴 consistencia: copia embebida ≠ front-matter |
+| Test + `.shax` (reemplazar enforcement) | 🟡 verde de máquina, diff visible del anchor — la revisión exige el acta |
+| Tríada completa + fila de log | 🟢 camino legítimo P1 |
+| Referencia cross-slice no declarada en `consumes` | 🔴 test de definición: declarado ≠ real |
 
-**Prohibido:** inventarios de archivos, listas de clases, flujos, modelos de datos (eso es trabajo de `contracts.X`). Ley de tamaño: si el charter necesita índice, ya está documentando estructura y viola la regla. Máximo una pantalla.
+El residuo irreducible: la rotación completa sin fila de log es indistinguible de la legítima por máquina — lo cubren git history, revisión y el guard futuro (regla de diff: rotación de `.shax` ⇒ fila de log en el commit).
 
-### 3.2 Tests de arquitectura — fronteras ejecutables
+## 6. Tests de arquitectura (una regla por repo)
 
-La parte exigible no vive en prosa: vive como **tests que corren con la suite normal** y fallan en rojo como cualquier test.
+- Fronteras corren con la suite normal y fallan en rojo: ningún `Slices.X.engine` depende de `Slices.Y.*` (X≠Y); ningún engine depende de ningún delivery. Slices nuevos heredan la frontera gratis.
+- Mecanismo: NetArchTest / ArchUnitNET / test de reflexión propio (~50 líneas).
+- Más el **seal test genérico** (repo-level, ancla de confianza junto a los arch tests): por cada slice, hashea el par, compara contra `.shax`, y exige presencia de la tríada completa.
 
-| Perfil | Mecanismo | Nota |
-| :--- | :--- | :--- |
-| **Strict** | El compilador ya lo hace: un assembly por slice + `internal` | No se necesita test; no compila. Es la aduana nativa. |
-| **Standard / Lite** | **NetArchTest** o **ArchUnitNET**: reglas de dependencia como tests xunit normales | Alternativa sin dependencia: test de reflexión propio (~50 líneas) que escanea dependencias entre namespaces de slices. Determinista, corre en ms, alineado con Zero-Mocks. |
+## 7. Mecánica anti-pudrición
 
-La regla es **una por repo, no por slice**: "ningún namespace `Slices.X.engine` depende de `Slices.Y.*` para X≠Y; ningún engine depende de ningún delivery". Los slices nuevos heredan la frontera gratis.
+1. **Lo ejecutable no se desactualiza en silencio**: sellos, consistencia y arch tests fallan ruidosamente.
+2. **Re-confirmación anclada a eventos**: evolución de contrato ⇒ re-stamp del charter (P2). Contrato estable → charter estable.
+3. **Consumo real**: el charter se lee al abrir cualquier tarea del slice (A0) y es seed natural de prompts (factory futura).
+4. **`consumes` como detección de creep**: el cruce de frontera de namespace sin declaración = rojo — sin escaneo de vocabulario, igualdad exacta entre declarado y real.
 
-## 4. Mecánica anti-pudrición
+## 8. Límites honestos
 
-1. **Lo ejecutable no se desactualiza en silencio**: un arch test vencido *falla* ruidosamente. La exigencia no depende de que nadie actualice nada.
-2. **Re-confirmación anclada a eventos, no al calendario**: cuando un contrato (`contracts.X`) evoluciona, el charter se re-valida en el mismo paso. Contrato estable → propósito casi seguro estable; y el momento del cambio de contrato es el único momento con contexto fresco para corregir divergencia.
-3. **Consumo real, no adorno**: el charter se lee al abrir cualquier tarea del slice y es el seed natural del prompt de implementación (ver [Tool CLI](DDS_Tool_CLI_Decisiones.md)). Un doc con tres consumidores (routing del cambio, contexto del agente, checklist de revisión) no muere; uno que nadie lee, sí.
+- El sello protege **integridad**, no calidad: un test mal derivado, sellado, sigue mal derivado. La derivación es deliberada; su adecuación es revisión.
+- El creep **sin firma estructural** (lógica ajena escrita desde cero sin cruzar namespaces) no lo detecta máquina: queda en lectura (A0/A1) y re-confirmación.
+- Determinista para lo estructural y declarado; honesto para lo semántico.
 
-## 5. Relación con el guard del Tool CLI
+## 9. Relación con el Tool CLI
 
-Esta propuesta **re-encuadra el alcance v2 del guard**: la verificación de imports no se hará con AST en Go (Roslyn-in-Go); vive en el propio lenguaje objetivo como tests de arquitectura. El guard queda file-level (paths, contratos, huérfanos, core) — ver la decisión actualizada en el [Registro de Decisiones del Tool](DDS_Tool_CLI_Decisiones.md).
+El charter como datos (front-matter) y el `.shax` son consumibles directos del guard y la factory (criterio-como-datos, D5 del [registro del tool](DDS_Tool_CLI_Decisiones.md)). El guard file-level agrega: snapshot before/after de sellos y contratos, y la regla de diff "rotación de sello ⇒ fila de log". La verificación interim corre completa en la suite, sin tool.
 
-## 6. Hipótesis a validar
+## 10. Hipótesis a validar
 
 | Hipótesis | Métrica |
 | :--- | :--- |
-| El charter reduce decisiones de routing erróneas | Cambios re-asignados de slice tras revisión |
-| Los arch tests contienen cruces antes que la revisión | Violaciones detectadas por la suite vs. por revisión humana |
-| El costo de mantenimiento del charter tiende a cero | Ediciones de charter que no sean re-confirmaciones por evolución de contrato |
+| El charter reduce routing erróneo | Cambios re-asignados de slice tras revisión |
+| `consumes` detecta creep antes que la revisión | Cruces detectados por suite vs. por revisión |
+| El costo de mantenimiento de la tríada tiende a cero | Rotaciones de sello que no sean cambios de definición reales |
+| La fricción del nivel 3 no desalienta documentar | Tríadas vigentes vs. slices totales |
 
-## 7. Integración en el workflow del agente
+## 11. Integración en el workflow del agente
 
-Resuelta en [Workflows Operativos DDS](DDS_Workflows.md): la matriz de decisiones define por dónde entra cada cambio, y los workflows A (modificar comportamiento) y B (nacer un slice) fijan el procedimiento con el charter como primera lectura (charter-first) y las reglas de bifurcación de contrato y nacimiento. La regla operativa para el `AGENTS.md` está referenciada ahí como pendiente de rollout (actualizar template + notificar al agente ya instalado, decisión separada).
+Resuelta en [Workflows Operativos DDS](DDS_Workflows.md): matriz de entrada, workflows A/B con la compuerta P0 integrada, y el triage de bug. La regla operativa para el `AGENTS.md` vive ahí, con su rollout como decisión separada.
