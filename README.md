@@ -157,6 +157,10 @@ All detailed architectural standards, refactoring playbooks, and embedded implem
 | 💾 **[Segregated Persistence Design](docs/es/DDS_Persistencia_Segregada.md)** | Deep dive into the architectural trade-offs of splitting database contexts per Slice, discussing database coupling vs. DRY principles. |
 | ⚙️ **[DDS in Embedded Systems](docs/es/DDS_Sistemas_Embebidos.md)** | Architecture guide for implementing DDS on resource-constrained chips (ESP8266/ESP32) with zero heap allocation, setup isolation, and ISR data flow. |
 | 🗺️ **[DDS Operational Roadmap](docs/es/DDS_Roadmap_Operativo.md)** | What is already defined for DDS + DoD and what remains to make the method more robust (promotion/demotion playbook, measurable thresholds, worked examples, contract evolution manual). Spanish. |
+| 🛠️ **[DDS CLI Tool Decision Record](docs/es/DDS_Tool_CLI_Decisiones.md)** | Design decisions for the companion Go CLI (`tools/dds-guard/`, planned): boundary guard (before/after) + prompt/skill factory, both driven by the criterion as structured data. Spanish. |
+| 📜 **[Slice Charter + Architecture Tests](docs/es/DDS_Slice_Charter.md)** | Per-slice intent doc (`SLICE.md`: purpose, non-goals, language — no code-dependent docs) plus executable boundary tests that run with the suite. Spanish. |
+| 🧭 **[Operational Workflows + Decision Matrix](docs/es/DDS_Workflows.md)** | How a change enters the system (decision matrix D-1..D-7), how to modify an existing feature's behavior, how to birth a new slice, multi-slice changes, and the agent-facing operational rule. Spanish. |
+| 🗂️ **[Use-Case Discussion Register](docs/es/DDS_Casos_Discusion.md)** | WORKING REGISTER (not settled criterion): the slice ≠ program correction (host/composition root) and the C1–C15 case catalog with discussion status; each resolved case graduates into the workflows doc. Spanish. |
 
 ---
 
@@ -168,10 +172,16 @@ All detailed architectural standards, refactoring playbooks, and embedded implem
 └── docs
     └── es                    <-- Spanish documentation directory (actively expanding)
         ├── DDS_De_POO_a_Slices.md
+        ├── DDS_Casos_Discusion.md
         ├── DDS_Introduccion_DoD.md
         ├── DDS_Metodo_Trabajo_IA.md
         ├── DDS_Persistencia_Segregada.md
         ├── DDS_Roadmap_Operativo.md
         ├── DDS_Sistemas_Embebidos.md
-        └── DDS_TDD_Sin_Mocks.md
+        ├── DDS_Slice_Charter.md
+        ├── DDS_Tool_CLI_Decisiones.md
+        ├── DDS_TDD_Sin_Mocks.md
+        └── DDS_Workflows.md
 ```
+
+> 🛠️ **Planned:** the companion Go CLI (`tools/dds-guard/`) will live in this repository once implemented — see the [CLI Tool Decision Record](docs/es/DDS_Tool_CLI_Decisiones.md).

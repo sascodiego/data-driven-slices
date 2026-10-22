@@ -39,6 +39,7 @@
 | **Zero-Mocks acotado a Decision/Engine** | Los mocks dinámicos se prohíben para Decision/Engine; Delivery puede usar dobles de comportamiento observable. | [TDD Sin Mocks](DDS_TDD_Sin_Mocks.md) |
 | **`/core` mínimo / solo infraestructura** | `/core` es aburrido y casi vacío: handles opacos de transacción y primitivas técnicas verdaderamente compartidas. **Los IDs y el Dinero NO viven en `/core` por defecto.** | [Método de Trabajo IA](DDS_Metodo_Trabajo_IA.md) |
 | **Prospecto con dimensiones medibles** | Ocho dimensiones (tokens, archivos, runtime de tests, radio de explosión, regresión, etc.) con hipótesis a contrastar. | [Prospecto Medible](DDS_Metodo_Trabajo_IA.md#prospecto-medible-hipótesis-a-validar) |
+| **Workflows operativos + matriz de decisiones** | Cómo entra un cambio (matriz D-1..D-7), modificar comportamiento (A) y nacer un slice (B), multi-slice y regla operativa para el agente. | [Workflows Operativos](DDS_Workflows.md) |
 
 ---
 
@@ -55,6 +56,8 @@ Estos son los entregables pendientes. Cada uno convierte un criterio actual en u
 | 5 | **Manual de evolución de contratos públicos** | Hoy se dice "versionar/adaptar/migrar", pero falta el procedimiento paso a paso y los criterios de retrocompatibilidad. | 🔲 Pendiente |
 | 6 | **Guía de persistencia por perfil (con casos de cuándo NO segregar)** | La segregación está documentada para Standard/Strict, pero falta el ejemplo inverso: cuándo un `DbContext` compartido es correcto en Lite. | 🔲 Pendiente |
 | 7 | **Definición operativa del radio de explosión del refactor** | Es una dimensión clave del prospecto, pero aún no tiene una definición operativa precisa (cómo medirlo de forma repetible). | 🔲 Pendiente |
+| 8 | **Tool CLI `dds` (guard + factory)** | Verificación determinista de fronteras entre slices (el compilador solo cubre Strict) y generación sistemática de skills/prompts desde el criterio. Diseño decidido en el [Registro de Decisiones del Tool](DDS_Tool_CLI_Decisiones.md); implementación pendiente. | 🟡 Diseño decidido |
+| 9 | **Charter de slice + tests de arquitectura** | Intención por slice sin doc dependiente del código (`SLICE.md`) y fronteras ejecutables que corren con la suite. Diseño decidido en el [doc de Charter](DDS_Slice_Charter.md); validación con el primer proyecto real pendiente. | 🟡 Diseño decidido |
 
 ### Próximo entregable consolidador
 
@@ -71,6 +74,11 @@ Estos son los entregables pendientes. Cada uno convierte un criterio actual en u
 - [x] Regla de `/core` corregida (infraestructura; IDs y Dinero fuera por defecto).
 - [x] Integración en SDD y ODD sin fases nuevas.
 - [x] Prospecto con dimensiones e hipótesis medibles.
+- [x] Decisiones de diseño del tool CLI `dds` (guard + factory) asentadas.
+- [x] Charter de slice (`SLICE.md`) + tests de arquitectura: propuesta asentada.
+- [x] Workflows operativos (modificación / nacimiento de slice) con matriz de decisiones asentados.
+- [ ] Charter + arch tests validados con el primer proyecto real.
+- [ ] Tool CLI `dds` implementado (guard file-level + factory de skills/prompts).
 - [ ] Playbook de promoción **y democión** entre perfiles.
 - [ ] Umbrales numéricos iniciales por dimensión.
 - [ ] Ejemplo real de DDS Lite (CRUD completo).
