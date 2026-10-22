@@ -1,4 +1,4 @@
-<!-- dds-criterion: prototype-template v1 (hand-authored; in sync with satellite deployment update #2) -->
+<!-- dds-criterion: prototype-template v2 (hand-authored; includes definition trio + seal protocol from cluster C8+C9) -->
 <!-- Placeholders: {{PROJECT_NAME}}, {{PROJECT_DESCRIPTION}}, {{SOLUTION_LAYOUT}} — fill per project. -->
 
 # AGENTS.md — {{PROJECT_NAME}}
@@ -19,7 +19,9 @@ Separate **Data** (what is known) from **Decision** (what is computed) from **De
 /src
 ├── Slices/
 │   └── Billing/                    # one slice = one capability (NOT one table)
-│       ├── SLICE.md                # the slice charter (see section 3)
+│       ├── SLICE.md                # the slice charter: clauses as data (see section 3)
+│       ├── Billing.slice.test.cs   # definition test: derived rules + embedded clause copy
+│       ├── slice.shax              # seal: sha256 of the SLICE.md + definition-test pair
 │       ├── contracts.Billing/      # PUBLIC surface: DTOs, entry points. The ONLY thing neighbors may read.
 │       ├── engine.Billing/         # pure decision logic. Static, no I/O, no state.
 │       └── delivery.Billing/       # I/O: HTTP, DB, messaging, transactions.
@@ -29,23 +31,59 @@ Separate **Data** (what is known) from **Decision** (what is computed) from **De
 
 - Name slices by **capability / reason for change** (`Inventory`, `Billing`, `ApproveRefund`), not by entity unless the entity *is* the capability.
 - Size a slice by capability and blast radius, not by table count.
+- All `*.slice.test.cs` files compile into one repo-level definition-tests project (glob include).
 
-## 3. Slice Charter (`SLICE.md`)
+## 3. Slice Definition Trio (charter + definition test + seal)
 
-- Every slice has a `SLICE.md` inside it: 10–25 lines, **intent ONLY**.
-- **HARD RULE:** the charter may only contain what code cannot express — why the slice exists, what is forbidden to it, what is NOT its problem. If a machine can derive it from the repo, it is banned from the charter.
-- Allowed fields:
+Every slice carries three definition files at its root. **A slice without the trio does not exist.**
 
-| Field | Purpose |
-| :--- | :--- |
-| `Purpose` (one line) | The capability: reasons for change live here |
-| `Not here` (exclusions with owning slice) | **Anti scope-creep — the most valuable line** |
-| `Language` (3–5 domain terms) | Minimal ubiquitous language |
-| `Profile` + one-line why | Choice recorded at birth |
-| `Surface` (rule + last-confirmed date) | "contracts.X is the only public face" |
+### `SLICE.md` — the charter as data
 
-- Prohibited: file inventories, class lists, flows, data models. **Size law:** one screen max; if it needs a TOC, it documents structure and violates the rule.
-- **Re-confirmation anchor:** when `contracts.X` evolves, re-validate the charter in the same step/commit. Contract stable → charter stable.
+```markdown
+---
+name: Billing
+purpose: own everything about charging money for completed sales
+excludes:
+  - { concept: pricing, owner: Pricing, decision: DDS-012 }
+language:
+  - { term: Charge, means: attempt to charge money }
+consumes: [Pricing]
+profile: { level: Standard, decision: DDS-011 }
+surface: contracts.Billing
+confirmed: 2026-10-22
+---
+```
+
+- **HARD RULE:** the charter may only contain what code cannot express — why the slice exists, what is forbidden to it, what is NOT its problem, whom it consumes. If a machine can derive it from the repo, it is banned.
+- Prohibited: file inventories, class lists, flows, data models. **Size law:** one screen max.
+- The WHY lives in the project decision log (anchored table), referenced by decision IDs — never inside the charter.
+
+### `[Slice].slice.test.cs` — the enforcement
+
+- Structural rules **derived from the clauses**, carrying an **embedded copy** of the declaration they enforce (never trusts the `.md` at runtime).
+- Consistency check: embedded copy ↔ front-matter. A charter edited without re-deriving the test goes red.
+
+### `slice.shax` — the pair seal
+
+```
+sha256( sha256(SLICE.md) + sha256([Slice].slice.test.cs) )
+```
+
+One hex line. **One seal for the pair:** any modification to either file breaks the seal → instant red on `dotnet test` → the change must be explained. Rotation is legitimate ONLY via the definition protocol (below) plus a decision-log row.
+
+### Definition protocol (impact gate)
+
+| Level | What changes | Touches | Does NOT touch |
+| :-: | :--- | :--- | :--- |
+| **3. Definition** | What the slice IS/FOR: purpose, excludes, consumes, language, profile | Charter + definition test + `.shax` + log row | — |
+| **2. Promise** | The surface (`contracts.X`) without a concept change | Contract evolution event (D-4) + `confirmed` re-stamp | The trio |
+| **1. Implementation** | Engine logic, delivery internals | Engine + behavior tests | **Neither the `.md`, nor its test, nor the seal** |
+
+Level 1 is the common case: the trio is untouched (zero friction). Level 3 rotation: edit clauses → re-derive test → recompute the pair seal (`sha256sum` on both files) → update `.shax` → append decision-log row. Detection is state-based: half-done rotations stay red until completed.
+
+### Bug triage (when the task is a bug)
+
+The report is the spec of the desire → write the RED test first. Then classify against the truth stack (charter → contract → test → code): is the defect in the implementation (code ≠ its test), the promise (contract lies), or the definition (charter lies)? Fix at the classified layer; the change cascades down. **Hard rule: never edit an assertion to make the suite green without justifying in the same commit why the old expected behavior was wrong.**
 
 ## 4. Profiles (structure is proportional to risk, not dogma)
 
@@ -75,8 +113,9 @@ Separate **Data** (what is known) from **Decision** (what is computed) from **De
 ### Architecture Tests (executable boundaries)
 
 - Boundary rules must run with the normal test suite and fail red like any test.
-- **One rule per repo, NOT per slice**: no namespace `Slices.X.engine` may depend on `Slices.Y.*` (X≠Y); no engine may depend on any delivery. New slices inherit the boundary for free.
+- **One rule per repo, NOT per slice**: no namespace `Slices.X.engine` may depend on `Slices.Y.*` (X≠Y); no engine may depend on any delivery; **cross-slice references must be declared in `consumes`** — declared set must equal the actual set. New slices inherit the boundary for free.
 - Mechanism: NetArchTest or ArchUnitNET as normal xunit tests, or a ~50-line custom reflection test. (If Strict is adopted: one assembly per slice + `internal` — the compiler IS the boundary.)
+- **Seal test (generic, repo-level):** for every slice, hash `SLICE.md` and its definition test, recompute the pair seal, compare against `slice.shax`, and require the full trio to exist.
 
 ## 7. Decision Matrix (how a change enters the system)
 
@@ -100,7 +139,8 @@ Questions are consulted **in order**; each answer derives to a workflow or the n
 | :-: | :--- |
 | A0 | **Routing charter-first**: read `SLICE.md` of candidate slices; `Not here` decides. Unresolvable doubt → D-7 (ask). |
 | A1 | **See the current feature**, in order: `contracts.X` (surface) → engine tests (executable spec of current behavior) → `engine.X` (only now the code). |
-| A2 | **Contract bifurcation** (D-4): intact → contained change. Mutates → evolution event: explicit step, enumerate consumers, re-confirm charter in the same step. |
+| A2 | **Impact gate**: does the change reach the definition, the contract, or stay contained? Contained → A3 (trio untouched). Contract → evolution event + `confirmed` re-stamp. Definition → full definition protocol (charter + test + seal + log row) — and if the definition changes because "this belongs elsewhere": classify (drift 9a/9b/9c) and ask. |
+| A2b | **Bug triage** (if the task is a bug): the report is the spec → RED first; classify against the truth stack (implementation / promise / definition); fix at the classified layer. Never edit an assertion to green without same-commit justification. |
 | A3 | **Modify test-first on the engine**: new plain input→output case (RED), change the pure function (GREEN). If contract mutated: adapt contracts and each consuming delivery. |
 | A4 | **Boundaries**: full suite — arch tests guarantee no slice boundary was crossed and no I/O entered an engine. New path → must be claimable by the slice (orphan = defect). |
 | A5 | **Close**: one work-unit commit — engine + tests + (if any) contract + re-confirmed charter, in the SAME commit. |
@@ -110,11 +150,11 @@ Questions are consulted **in order**; each answer derives to a workflow or the n
 | Step | What |
 | :-: | :--- |
 | B0 | **Justification** (D-2): one-line Purpose without foreign internals + cluster of reasons-to-change. Anti-criteria: not by entity, not for a one-off change, if you can't write `Not here` with owners it's not a slice yet. If in doubt: ask. |
-| B1 | **Charter-first, and TWO charters mutate**: the new `SLICE.md` is written BEFORE any code; the origin slice's charter gains its `Not here` line and loses what left. A birth is a re-partition of responsibility. |
+| B1 | **Trio-first, and TWO charters mutate**: the new trio (`SLICE.md` + definition test + `slice.shax`) is written BEFORE any business code; the origin slice's charter gains its `Not here` line and loses what left (its definition test re-derived and re-sealed). A birth is a re-partition of responsibility. |
 | B2 | **Profile and minimal vertical scaffold**: profile at birth (Lite by default; Standard with real rules; Strict only on demonstrated pain). Scaffold = what the first use case needs; `delivery.X` is not born if there is no own I/O. |
 | B3 | **Contracts before engine** (data-first): `contracts.X` designed first — the most expensive decision to revert. Cross-slice consumption resolves via contract only. |
 | B4 | **Extraction test-first** (if extracted from another slice): plain input→output tests MOVE to the new namespace (RED), the pure function is extracted (GREEN). Engine purity is what makes extraction mechanical. |
-| B5 | **Boundaries and birth commit**: arch tests are one generic rule per repo — the new slice inherits the boundary for free. ONE commit: new charter + updated origin charter + contracts + extracted engine + migrated tests. |
+| B5 | **Boundaries and birth commit**: arch tests are one generic rule per repo — the new slice inherits the boundary for free. ONE commit: new sealed trio + re-sealed origin trio + contracts + extracted engine + migrated tests. The slice is born sealed. |
 
 ### Multi-slice changes (D-3 = yes)
 
@@ -145,3 +185,4 @@ dotnet test --filter "FullyQualifiedName~engine"   # engine-only fast suite
 - Do not read a neighbor slice's engine or delivery code, even "just to look".
 - Do not promote a slice's profile without observed pain.
 - Do not put structure (file lists, flows, models) into a charter — intent only.
+- Do not edit a test assertion to make the suite green without classifying it as a spec change in the same commit.
