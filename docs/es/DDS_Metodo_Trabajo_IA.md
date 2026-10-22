@@ -52,7 +52,7 @@ DDS se publica como un **prospecto / manifiesto de criterios de diseño e hipót
 - Un **criterio de decisión**: separar **Datos** (lo conocido) de **Decisión** (lo calculado) de **Delivery** (lo que modifica el mundo).
 - Una **escala de tres perfiles guiada por riesgo** (Lite / Standard / Strict) para que la estructura física sea proporcional al riesgo, no al dogma.
 - Una **postura Zero-Mocks** para la capa `Decision` / `Engine`, con dobles de prueba de comportamiento observable permitidos para `Delivery`.
-- **Inyección en SDD** como criterio arquitectónico dentro de Design / Apply / Verify — DDS **no agrega fases SDD**.
+- **Inyección en SDD y en ODD** como criterio arquitectónico dentro de las fases existentes de cualquiera de los dos flujos — DDS **no agrega fases** ni a SDD ni a ODD. Ambas metodologías coexisten y son soportadas de primera clase.
 
 ### Qué DDS NO afirma todavía
 - **No** afirma reducciones universales y probadas en costo de tokens, costo de exploración de la IA, tasa de regresión o radio de explosión del refactor.
@@ -704,15 +704,28 @@ public static class SalesDelivery
 
 ---
 
-### 5. Método de Trabajo para Agentes de IA (SDD + TDD)
+### 5. Método de Trabajo para Agentes de IA (SDD / ODD + TDD)
 
-DDS **no modifica el flujo SDD ni agrega pasos**. Se inyecta como **criterio arquitectónico** dentro de las fases existentes de SDD, una vez definida la idea:
+DDS es **agnóstico del flujo de trabajo**: no modifica la metodología huésped ni agrega pasos. Se inyecta como **criterio arquitectónico** dentro de las fases existentes de cualquiera de los dos flujos agénticos, una vez definida la idea. **SDD** (Spec-Driven Development) y **ODD** (Organic Driven Development) coexisten como opciones de primera clase: se usa la que el proyecto ya tenga, y DDS se adapta a ella.
+
+#### Inyección en SDD
 
 | Fase SDD | Qué aporta DDS |
 | :--- | :--- |
 | **Design / Spec (planificación)** | Elegir el **perfil** (Lite / Standard / Strict), definir el **límite y nombre del slice**, fijar la **forma del contrato** y decidir la **estrategia TDD**. |
 | **Apply** | Implementar con el perfil seleccionado y mantener la separación `Data / Decision / Delivery` **proporcionada** al riesgo del slice. |
 | **Verify** | Verificar tests, fronteras, radio de explosión del refactor y confirmar que la **elección de perfil fue proporcional** al riesgo real. |
+
+#### Inyección en ODD
+
+| Fase ODD | Qué aporta DDS |
+| :--- | :--- |
+| **Authorize / Explore** | Fase de solo lectura: acotar la exploración al **slice** objetivo (leer solo el `contracts.XX` público de los slices vecinos). Aún no se compromete estructura. |
+| **Resolve uncertainty / Classify / Track** | Elegir el **perfil** (Lite / Standard / Strict) según el riesgo observado, definir el **límite y nombre del slice**, fijar la **forma del contrato** y registrar la elección en el documento de tareas del feature. |
+| **Implement task by task** | Implementar con el perfil seleccionado, mantener la separación `Data / Decision / Delivery` **proporcionada** al riesgo del slice y respetar las reglas de contención de contexto del slice objetivo. |
+| **Check / Close** | Igual que Verify en SDD: verificar tests, fronteras, radio de explosión y confirmar que la **elección de perfil fue proporcional** al riesgo real. Cada tarea cierra con un commit de unidad de trabajo revisable. |
+
+> Los mapeos SDD y ODD son equivalentes: **la planificación elige el perfil, la implementación mantiene la separación, la verificación confirma la proporcionalidad.** Solo cambian los nombres de las fases.
 
 #### Contención de contexto durante Apply
 
