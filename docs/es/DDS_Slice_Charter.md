@@ -1,7 +1,7 @@
 # Charter de Slice, Tríada de Definición y Tests de Arquitectura
 
 > [!NOTE]
-> **Estado: propuesta asentada (v2), pendiente de validación.** Este documento incorpora al criterio DDS la **tríada de definición** por slice (charter + test de definición + sello) y los **tests de arquitectura**. Incluye la resolución del cluster C8+C9 del [registro de discusión](DDS_Casos_Discusion.md). Sigue la postura del [prospecto](DDS_Metodo_Trabajo_IA.md#prospecto-medible-hipótesis-a-validar): recomendaciones a poner a prueba, no resultados probados.
+> **Estado: propuesta asentada (v3), pendiente de validación.** Este documento incorpora al criterio DDS la **tríada de definición** por slice (charter + test de definición + sello) y los **tests de arquitectura**. Incluye la resolución del cluster C8+C9 del [registro de discusión](DDS_Casos_Discusion.md) y del cluster **OpenDGI-1** (primer piloto). Sigue la postura del [prospecto](DDS_Metodo_Trabajo_IA.md#prospecto-medible-hipótesis-a-validar): recomendaciones a poner a prueba, no resultados probados.
 
 ---
 
@@ -16,7 +16,7 @@ Un slice es una unidad de cambio — pero dentro del slice, el *propósito* qued
 
 **Parte A — Solo lo que el código no puede expresar:**
 
-> El charter de un slice solo puede contener lo que el código no puede expresar: por qué existe, qué le está prohibido, qué NO es su problema, a quién consume. Si una máquina puede derivarlo del repo, va contra la regla.
+> El charter de un slice solo puede contener lo que el código no puede expresar: por qué existe, qué le está prohibido, qué NO es su problema, a quién consume. La distinción operativa es **hecho derivable vs. compromiso falseable**: un *hecho derivable* describe al repo y nadie lo tiene como promesa (inventarios de archivos, clases, flujos) — va banned. Un *compromiso falseable* es intención que el código puede violar, y por eso va en el charter: `consumes` declara a quién depende este slice y nada más, y se enforcea por igualdad en ambas direcciones (cruce no declarado = rojo; declaración sin consumo real = rojo).
 
 **Parte B — La pila de verdad** (resolución C8/C9):
 
@@ -61,6 +61,19 @@ confirmed: 2026-10-22
 - Prohibido: inventarios de archivos, clases, flujos, modelos de datos. Ley de tamaño: una pantalla; si necesita índice, documenta estructura y viola la regla.
 - Los porqués **no viven acá**: viven en el decision log (tabla anclada del proyecto), referenciados por ID.
 
+### 3.1.1 Tiers de verificación por campo
+
+Cada campo del charter declara qué detección tiene. La admisibilidad de un campo no depende de su verificabilidad (el criterio de admisión sigue siendo Parte A); depende de su valor de decisión.
+
+| Campo | Tier | Detección |
+| :--- | :--- | :--- |
+| `purpose` | prose | Sin detector de máquina: consumo A0 + re-confirmación anclada a eventos. Rot aceptada por diseño. |
+| `excludes` | machine (estructural) + prose (semántico) | Integridad referencial del `owner` (§6) + ripple rule (§7). La atribución concepto→owner queda en revisión. |
+| `language` | prose | Sin escaneo de vocabulario (decisión explícita): consumo A0 + re-confirmación. |
+| `consumes` | machine | Igualdad bidireccional declarado ↔ real (test de definición). |
+| `profile` | machine | Presencia y valores válidos según perfil. |
+| `surface` | machine | Existencia de `contracts.X`. |
+
 ### 3.2 `[Slice].slice.test.cs` — el enforcement
 
 - Reglas estructurales **derivadas de las cláusulas**, con **copia embebida** de la declaración que enforcementan (no confía en el `.md` en runtime).
@@ -85,7 +98,7 @@ Una línea hex en `slice.shax`. **Un sello para el par**: cualquier modificació
 | **2. Promesa** | La superficie (`contracts.X`) sin cambiar el concepto | Evento de evolución de contrato (D-4) + re-stamp `confirmed` | Tríada |
 | **1. Implementación** | Lógica interna del engine, internals del delivery | Engine + tests de comportamiento | **Ni el `.md`, ni su test, ni el sello** |
 
-**P1 — Camino de definición:** editar cláusulas → re-derivar el test (reglas + copia embebida) → recomputar el sello del par → `.shax` → fila en el decision log. La detección es de estado: pasos a medias = suite roja hasta completar.
+**P1 — Camino de definición:** editar cláusulas → re-derivar el test (reglas + copia embebida) → recomputar el sello del par → `.shax` → **re-stamp `confirmed`** → fila en el decision log. La detección es de estado: pasos a medias = suite roja hasta completar. El re-stamp de nivel 3 no es redundancia: `confirmed` significa *última confirmación deliberada del charter* (P1 o P2) — frescura para el lector A0; el sello lleva integridad y la fila de log lleva provenancia.
 
 **P2 — Camino de contrato:** evento D-4 existente + re-stamp. El log no se toca (dos ceremonias para lo mismo es burocracia).
 
@@ -103,6 +116,8 @@ Una línea hex en `slice.shax`. **Un sello para el par**: cualquier modificació
 | Test + `.shax` (reemplazar enforcement) | 🟡 verde de máquina, diff visible del anchor — la revisión exige el acta |
 | Tríada completa + fila de log | 🟢 camino legítimo P1 |
 | Referencia cross-slice no declarada en `consumes` | 🔴 test de definición: declarado ≠ real |
+| `excludes.owner` apunta a un slice inexistente | 🔴 integridad referencial: owner no resuelve |
+| Slice renombrado/disuelto sin re-confirmar los charters que lo nombran | 🟡 ripple rule: la revisión exige la re-confirmación en el mismo commit |
 
 El residuo irreducible: la rotación completa sin fila de log es indistinguible de la legítima por máquina — lo cubren git history, revisión y el guard futuro (regla de diff: rotación de `.shax` ⇒ fila de log en el commit).
 
@@ -110,7 +125,7 @@ El residuo irreducible: la rotación completa sin fila de log es indistinguible 
 
 - Fronteras corren con la suite normal y fallan en rojo: ningún `Slices.X.engine` depende de `Slices.Y.*` (X≠Y); ningún engine depende de ningún delivery. Slices nuevos heredan la frontera gratis.
 - Mecanismo: NetArchTest / ArchUnitNET / test de reflexión propio (~50 líneas).
-- Más el **seal test genérico** (repo-level, ancla de confianza junto a los arch tests): por cada slice, hashea el par, compara contra `.shax`, y exige presencia de la tríada completa.
+- Más el **seal test genérico** (repo-level, ancla de confianza junto a los arch tests): por cada slice, hashea el par, compara contra `.shax`, y exige presencia de la tríada completa. Más el **test de integridad referencial**: todo `excludes.owner` de cada charter debe resolver a un slice existente con su tríada presente — el front-matter es datos, el owner es un nombre de slice, y la referencia rota es roja.
 
 ## 7. Mecánica anti-pudrición
 
@@ -118,6 +133,7 @@ El residuo irreducible: la rotación completa sin fila de log es indistinguible 
 2. **Re-confirmación anclada a eventos**: evolución de contrato ⇒ re-stamp del charter (P2). Contrato estable → charter estable.
 3. **Consumo real**: el charter se lee al abrir cualquier tarea del slice (A0) y es seed natural de prompts (factory futura).
 4. **`consumes` como detección de creep**: el cruce de frontera de namespace sin declaración = rojo — sin escaneo de vocabulario, igualdad exacta entre declarado y real.
+5. **Ripple de ciclo de vida**: nacimiento, renombre, disolución o migración de concepto de un slice obliga a re-confirmar, en el mismo commit, todos los charters que lo nombren en `excludes`/`consumes` (el nacimiento del Workflow B1 muta dos charters como mínimo; el ripple los generaliza a N).
 
 ## 8. Límites honestos
 
