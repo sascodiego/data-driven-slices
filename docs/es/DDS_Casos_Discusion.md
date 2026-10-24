@@ -85,3 +85,14 @@
 
 ### 4.6 Resto (C2, C11, C13, C14, C15)
 🔲 Pendientes.
+
+### 4.7 OpenDGI-1 — Primer piloto (pre-sello del slice RutValidation) — ✅ RESUELTO
+
+**Resolución (graduada a [Charter v3](DDS_Slice_Charter.md) y [Workflows](DDS_Workflows.md)):**
+
+1. **Q1 — Admisibilidad de campos**: se resuelve como **tiers de verificación por campo** (Charter §3.1.1); la admisibilidad sigue siendo Parte A — un campo no necesita ser verificable por máquina para ser admisible.
+2. **Q2 — `consumes` vs. HARD RULE**: se resuelve como **hecho derivable vs. compromiso falseable**; `consumes` se queda en `SLICE.md` (Parte A del charter reformulada). El piloto detectó una contradicción real de redacción en la Parte A vieja.
+3. **Q3 — Ciclo de vida de `excludes`**: se resuelve como **integridad referencial del owner por máquina** (Charter §6) + **regla de ripple de ciclo de vida** (Charter §7).
+4. **Q4 — Re-stamp de `confirmed`**: el nivel 3 también re-estampa; P1 enmendado.
+
+**Aprendizaje**: la lectura adversarial del piloto detectó la contradicción de la Parte A y la capacidad no explotada de integridad del owner **antes del primer sello** — exactamente la validación que pide el [prospecto](DDS_Metodo_Trabajo_IA.md#prospecto-medible-hipótesis-a-validar).
