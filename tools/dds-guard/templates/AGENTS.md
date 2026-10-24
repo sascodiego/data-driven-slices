@@ -20,7 +20,7 @@ Separate **Data** (what is known) from **Decision** (what is computed) from **De
 ├── Slices/
 │   └── Billing/                    # one slice = one capability (NOT one table)
 │       ├── SLICE.md                # the slice charter: clauses as data (see section 3)
-│       ├── Billing.slice.test.cs   # definition test: derived rules + embedded clause copy
+│       ├── Billing.slice.test.cs   # definition test: a TRANSLATION of the charter (no embedded copy)
 │       ├── slice.shax              # seal: sha256 of the SLICE.md + definition-test pair
 │       ├── contracts.Billing/      # PUBLIC surface: DTOs, entry points. The ONLY thing neighbors may read.
 │       ├── engine.Billing/         # pure decision logic. Static, no I/O, no state.
@@ -50,26 +50,32 @@ language:
 consumes: [Pricing]
 profile: { level: Standard, decision: DDS-011 }
 surface: contracts.Billing
+enforced_by: <sha256 of [Slice].slice.test.cs>
 confirmed: 2026-10-22
 ---
 ```
 
-- **HARD RULE:** the charter may only contain what code cannot express — why the slice exists, what is forbidden to it, what is NOT its problem, whom it consumes. If a machine can derive it from the repo, it is banned.
+- **HARD RULE:** the charter may only contain what code cannot express — why the slice exists, what is forbidden to it, what is NOT its problem, whom it consumes. If a machine can derive it from the repo, it is banned. Testable promises (preconditions, output shapes, rejection cases) live in `contracts.X` and behavior tests; the charter refers, never embeds — not even as a frozen reference.
 - Prohibited: file inventories, class lists, flows, data models. **Size law:** one screen max.
 - The WHY lives in the project decision log (anchored table), referenced by decision IDs — never inside the charter.
 
-### `[Slice].slice.test.cs` — the enforcement
+### `[Slice].slice.test.cs` — a translation, not a mirror
 
-- Structural rules **derived from the clauses**, carrying an **embedded copy** of the declaration they enforce (never trusts the `.md` at runtime).
-- Consistency check: embedded copy ↔ front-matter. A charter edited without re-deriving the test goes red.
+The definition test is a hand-written **translation to code of what the charter declares** — a spec, not a mirror. An embedded copy of the charter text is prohibited (whole file or by clauses): the `.md` is data to verify, never truth to trust.
 
-### `slice.shax` — the pair seal
+The translation covers, at birth and on every Level-3 rotation:
+- The promise shape: contract operations with full signatures (parameters and return type, not names only) and exact outcome states.
+- Slice-specific structural rules the generic tests do not cover.
+
+Charter-as-data checks (trio presence, seal, `enforced_by`, `excludes.owner` integrity, `consumes` declared vs actual crossings, `profile`/`surface` validity, front-matter well-formedness) belong to ONE generic repo-level test that parses the front-matter with a minimal in-house parser — never string matching on the text. An unparseable front-matter is red.
+
+### `slice.shax` — the pair seal (canonical LF)
 
 ```
-sha256( sha256(SLICE.md) + sha256([Slice].slice.test.cs) )
+sha256( sha256(canonical(SLICE.md)) + sha256(canonical([Slice].slice.test.cs)) )
 ```
 
-One hex line. **One seal for the pair:** any modification to either file breaks the seal → instant red on `dotnet test` → the change must be explained. Rotation is legitimate ONLY via the definition protocol (below) plus a decision-log row.
+One hex line. `canonical()` = decode bytes as UTF-8 (BOM stripped), then normalize to LF — so neither encoding nor a cross-platform checkout with line-ending conversion produces false rotations. **One seal for the pair:** any modification to either file breaks the seal → instant red on the test suite → the change must be explained. The reverse direction is deterministic: the front-matter `enforced_by` field pins the canonical hash of the definition test — a test that rotates without its charter re-stamp is red even if the seal is recomputed. Rotation is legitimate ONLY via the definition protocol (below) plus a decision-log row.
 
 ### Definition protocol (impact gate)
 
@@ -79,7 +85,7 @@ One hex line. **One seal for the pair:** any modification to either file breaks 
 | **2. Promise** | The surface (`contracts.X`) without a concept change | Contract evolution event (D-4) + `confirmed` re-stamp | The trio |
 | **1. Implementation** | Engine logic, delivery internals | Engine + behavior tests | **Neither the `.md`, nor its test, nor the seal** |
 
-Level 1 is the common case: the trio is untouched (zero friction). Level 3 rotation: edit clauses → re-derive test → recompute the pair seal (`sha256sum` on both files) → update `.shax` → append decision-log row. Detection is state-based: half-done rotations stay red until completed.
+Level 1 is the common case: the trio is untouched (zero friction). Level 3 rotation: edit clauses → re-translate the test → recompute the test's canonical hash and re-stamp `enforced_by` → recompute the pair seal → update `.shax` → re-stamp `confirmed` → append decision-log row. Detection is state-based: half-done rotations stay red until completed. A birth commit carries its decision-log rows (why of excludes, profile, and contract decisions).
 
 ### Bug triage (when the task is a bug)
 
@@ -116,6 +122,7 @@ The report is the spec of the desire → write the RED test first. Then classify
 - **One rule per repo, NOT per slice**: no namespace `Slices.X.engine` may depend on `Slices.Y.*` (X≠Y); no engine may depend on any delivery; **cross-slice references must be declared in `consumes`** — declared set must equal the actual set. New slices inherit the boundary for free.
 - Mechanism: NetArchTest or ArchUnitNET as normal xunit tests, or a ~50-line custom reflection test. (If Strict is adopted: one assembly per slice + `internal` — the compiler IS the boundary.)
 - **Seal test (generic, repo-level):** for every slice, hash `SLICE.md` and its definition test, recompute the pair seal, compare against `slice.shax`, and require the full trio to exist.
+- **Anti-vacuity guard:** an architecture test that loaded zero slices/assemblies is red, not vacuously green.
 
 ## 7. Decision Matrix (how a change enters the system)
 

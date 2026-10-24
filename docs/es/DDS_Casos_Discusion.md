@@ -110,3 +110,5 @@
 7. **Parte A completada**: promesas testables → contratos y tests de comportamiento; porqués → log; referir, nunca embeber.
 
 **Aprendizaje**: la evaluación congelada del primer sello (preguntas sin cambios, respuestas con concesiones) produjo más método que la consulta previa al sellado — el piloto descubrió que "la cadena detecta deriva del trío, no del código respecto del charter", y la respuesta del owner fue eliminar el mecanismo especular en vez de afinarlo.
+
+**Métricas del primer batch (n=1, OpenDGI, Level-3 completo post-v4)**: 7 minutos branch→verde (fixtures RED incluidos); 0 rotaciones de sello no-definicionales desde el re-sello; el parser genérico reemplazó limpio la capa 3 (test viejo eliminado); suite 43/43; filas DDS-011..015.
