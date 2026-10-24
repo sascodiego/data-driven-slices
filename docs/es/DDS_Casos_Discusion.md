@@ -96,3 +96,17 @@
 4. **Q4 — Re-stamp de `confirmed`**: el nivel 3 también re-estampa; P1 enmendado.
 
 **Aprendizaje**: la lectura adversarial del piloto detectó la contradicción de la Parte A y la capacidad no explotada de integridad del owner **antes del primer sello** — exactamente la validación que pide el [prospecto](DDS_Metodo_Trabajo_IA.md#prospecto-medible-hipótesis-a-validar).
+
+### 4.8 OpenDGI-2 — Primer sello bajo evaluación (post-RutValidation) — ✅ RESUELTO
+
+**Resolución (graduada a [Charter v4](DDS_Slice_Charter.md) y [Workflows](DDS_Workflows.md)):**
+
+1. **Evaluación del primer sello**: 5 defectos de aplicación (derivables embebidos en prosa, copia verbatim del archivo entero, capa 3 por Contains, binding por nombre, sello exact-bytes) — camino P1 en batch único cuando el owner autorice. El artefacto es válido: nació sellado, tríada íntegra.
+2. **Copia embebida eliminada (decisión del owner)**: el test de definición es una **traducción** del charter, no un espejo; el charter se enforcementa como datos por tests genéricos (parseo del front-matter). Tiers reducidos a dos (machine / prose).
+3. **`enforced_by`**: pin determinista charter→test; test que rota sin re-stamp = rojo mecánico. Cierra la ventana "test cambió sin su contraparte".
+4. **Fila de log al nacer**: B1/B5 ahora exigen decision-log rows en el commit de nacimiento.
+5. **Forma canónica LF** para sello y hash (rotaciones falsas cross-platform); migración de re-sello única.
+6. **Anti-vacuidad** para arch tests; **vocabulario cruzado** entra a la ripple.
+7. **Parte A completada**: promesas testables → contratos y tests de comportamiento; porqués → log; referir, nunca embeber.
+
+**Aprendizaje**: la evaluación congelada del primer sello (preguntas sin cambios, respuestas con concesiones) produjo más método que la consulta previa al sellado — el piloto descubrió que "la cadena detecta deriva del trío, no del código respecto del charter", y la respuesta del owner fue eliminar el mecanismo especular en vez de afinarlo.
