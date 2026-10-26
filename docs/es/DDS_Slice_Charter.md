@@ -95,7 +95,7 @@ Cambiar el test sin que el charter lo acompañe da rojo por `enforced_by` (§3.3
 sha256( sha256(canonical(SLICE.md)) + sha256(canonical([Slice].slice.test.cs)) )
 ```
 
-Una línea hex en `slice.shax`. `canonical()` es la forma canónica del método: **LF normalizado** — así un checkout en otra plataforma con conversión de fin de línea no produce rotaciones falsas. Hashing y comparaciones corren siempre sobre la forma canónica; los digests existentes se migran una sola vez.
+Una línea hex en `slice.shax`. `canonical()` es la forma canónica del método: los bytes se decodifican como **UTF-8 con BOM removido** y luego se normaliza a **LF** — así ni el encoding ni un checkout en otra plataforma con conversión de fin de línea producen rotaciones falsas. Hashing y comparaciones corren siempre sobre la forma canónica; los digests existentes se migran una sola vez.
 
 **Un sello para el par**: cualquier modificación de cualquiera de los dos archivos rompe el sello → rojo al correr la suite → obligación de explicar por qué cambió. Y la dirección inversa queda determinista: `enforced_by` en el front-matter fija el hash canónico del test; un test que rota sin re-stamp en el charter es rojo, aunque el sello se recompute. Nadie hashea el `.shax`: es el ancla local del slice; su integridad es visibilidad de diff + revisión (+ guard futuro).
 
